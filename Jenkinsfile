@@ -47,7 +47,7 @@ node('maven') {
     echo "New Tag: ${newTag}"
 
     // Copy the war file we just built and rename to ROOT.war
-    sh "cp ./target/openshift-tasks.war ./ROOT.war"
+    sh "cp ./target/jboss-kitchensink-angularjs.war ./ROOT.war"
 
     // Start Binary Build in OpenShift using the file we just published
     // Replace xyz-tasks-dev with the name of your dev project
