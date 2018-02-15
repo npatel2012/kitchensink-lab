@@ -10,7 +10,8 @@ node('maven') {
   stage('Checkout Source') {
     // Get Source Code from SCM (Git) as configured in the Jenkins Project
     // Next line for inline script, "checkout scm" for Jenkinsfile from Gogs
-    git 'http://gogs.npatel-gogs.svc.cluster.local:3000/CICDLabs/kitchensink.git'
+    // git 'http://gogs.npatel-gogs.svc.cluster.local:3000/CICDLabs/kitchensink.git'
+    checkout scm
   }
 
   // The following variables need to be defined at the top level and not inside
