@@ -44,7 +44,7 @@ node('maven') {
   }
 
   stage('Build OpenShift Image') {
-    def newTag = "TestingCandidate-${version}"
+    def newTag = "TestingKitchensink-${version}"
     echo "New Tag: ${newTag}"
 
     // Copy the war file we just built and rename to ROOT.war
