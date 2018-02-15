@@ -80,10 +80,28 @@ node('maven') {
     // TBD: Proper test
     // Could use the OpenShift-Tasks REST APIs to make sure it is working as expected.
 
-    def newTag = "ProdReady-${version}"
+    //def newTag = "ProdReady-${version}"
+    def newTag = "StagingKitchensink-${version}"
     echo "New Tag: ${newTag}"
 
     // Replace xyz-tasks-dev with the name of your dev project
+    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: 'npatel-kitchensink-dev', namespace: 'npatel-kitchensink-dev', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
+  }
+  
+  stage('Deploy to Staging'){
+    sh "oc project npatel-kitchensink-stage"
+    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-kitchensink-dev\", \"name\": \"kitchensink:StagingKitchensink-$version\"}}}]}}' -n npatel-kitchensink-stage"
+
+    openshiftDeploy depCfg: 'kitchensink', namespace: 'npatel-kitchensink-stage', verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: 'npatel-kitchensink-stage', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: 'npatel-kitchensink-stage', svcName: 'kitchensink', verbose: 'false'
+
+  }
+
+  stage('Build Prod Tag'){
+    def newTag = "ProdReady-${version}"
+    echo "New Tag: ${newTag}"
+
     openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: 'npatel-kitchensink-dev', namespace: 'npatel-kitchensink-dev', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
   }
 
