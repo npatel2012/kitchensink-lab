@@ -54,18 +54,18 @@ node('maven') {
     sh "oc project npatel-tasks-dev"
     sh "oc start-build tasks --follow --from-file=./ROOT.war -n npatel-tasks-dev"
 
-    openshiftTag alias: 'false', destStream: 'tasks', destTag: newTag, destinationNamespace: 'npatel-tasks-dev', namespace: 'npatel-tasks-dev', srcStream: 'tasks', srcTag: 'latest', verbose: 'false'
+    openshiftTag alias: 'false', destStream: 'tasks', destTag: newTag, destinationNamespace: 'npatel-kitchensink-dev', namespace: 'npatel-kitchensink-dev', srcStream: 'tasks', srcTag: 'latest', verbose: 'false'
   }
 
   stage('Deploy to Dev') {
     // Patch the DeploymentConfig so that it points to the latest TestingCandidate-${version} Image.
     // Replace xyz-tasks-dev with the name of your dev project
-    sh "oc project npatel-tasks-dev"
-    sh "oc patch dc tasks --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"tasks\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-tasks-dev\", \"name\": \"tasks:TestingCandidate-$version\"}}}]}}' -n npatel-tasks-dev"
+    sh "oc project npatel-kitchensink-dev"
+    sh "oc patch dc tasks --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"tasks\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-kitchensink-dev\", \"name\": \"tasks:TestingCandidate-$version\"}}}]}}' -n npatel-kitchensink-dev"
 
-    openshiftDeploy depCfg: 'tasks', namespace: 'npatel-tasks-dev', verbose: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyDeployment depCfg: 'tasks', namespace: 'npatel-tasks-dev', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyService namespace: 'npatel-tasks-dev', svcName: 'tasks', verbose: 'false'
+    openshiftDeploy depCfg: 'tasks', namespace: 'npatel-kitchensink-dev', verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: 'tasks', namespace: 'npatel-kitchensink-dev', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: 'npatel-kitchensink-dev', svcName: 'tasks', verbose: 'false'
   }
 
   stage('Integration Test') {
@@ -76,7 +76,7 @@ node('maven') {
     echo "New Tag: ${newTag}"
 
     // Replace xyz-tasks-dev with the name of your dev project
-    openshiftTag alias: 'false', destStream: 'tasks', destTag: newTag, destinationNamespace: 'npatel-tasks-dev', namespace: 'npatel-tasks-dev', srcStream: 'tasks', srcTag: 'latest', verbose: 'false'
+    openshiftTag alias: 'false', destStream: 'tasks', destTag: newTag, destinationNamespace: 'npatel-kitchensink-dev', namespace: 'npatel-kitchensink-dev', srcStream: 'tasks', srcTag: 'latest', verbose: 'false'
   }
 
   // Blue/Green Deployment into Production
@@ -87,8 +87,8 @@ node('maven') {
   stage('Prep Production Deployment') {
     // Replace xyz-tasks-dev and xyz-tasks-prod with
     // your project names
-    sh "oc project npatel-tasks-prod"
-    sh "oc get route tasks -n npatel-tasks-prod -o jsonpath='{ .spec.to.name }' > activesvc.txt"
+    sh "oc project npatel-kitchensink-prod"
+    sh "oc get route tasks -n npatel-kitchensink-prod -o jsonpath='{ .spec.to.name }' > activesvc.txt"
     active = readFile('activesvc.txt').trim()
     if (active == "tasks-green") {
       dest = "tasks-blue"
@@ -103,19 +103,19 @@ node('maven') {
     // the latest ProdReady-${version} Image.
     // Replace xyz-tasks-dev and xyz-tasks-prod with
     // your project names.
-    sh "oc patch dc ${dest} --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"$dest\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-tasks-dev\", \"name\": \"tasks:ProdReady-$version\"}}}]}}' -n npatel-tasks-prod"
+    sh "oc patch dc ${dest} --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"$dest\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-kitchensink-dev\", \"name\": \"tasks:ProdReady-$version\"}}}]}}' -n npatel-kitchensink-prod"
 
-    openshiftDeploy depCfg: dest, namespace: 'npatel-tasks-prod', verbose: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyDeployment depCfg: dest, namespace: 'npatel-tasks-prod', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyService namespace: 'npatel-tasks-prod', svcName: dest, verbose: 'false'
+    openshiftDeploy depCfg: dest, namespace: 'npatel-kitchensink-prod', verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: dest, namespace: 'npatel-kitchensink-prod', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: 'npatel-kitchensink-prod', svcName: dest, verbose: 'false'
   }
   stage('Switch over to new Version') {
     input "Switch Production?"
 
     // Replace xyz-tasks-prod with the name of your
     // production project
-    sh 'oc patch route tasks -n npatel-tasks-prod -p \'{"spec":{"to":{"name":"' + dest + '"}}}\''
-    sh 'oc get route tasks -n npatel-tasks-prod > oc_out.txt'
+    sh 'oc patch route tasks -n npatel-kitchensink-prod -p \'{"spec":{"to":{"name":"' + dest + '"}}}\''
+    sh 'oc get route tasks -n npatel-kitchensink-prod > oc_out.txt'
     oc_out = readFile('oc_out.txt')
     echo "Current route configuration: " + oc_out
   }
