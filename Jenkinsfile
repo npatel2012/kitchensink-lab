@@ -34,7 +34,7 @@ node('maven') {
     echo "Code Analysis"
 
     // Replace xyz-sonarqube with the name of your project
-    sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube.npatel-sonarqube.svc.cluster.local:9000/ -Dsonar.projectName=${JOB_BASE_NAME}"
+    // sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube.npatel-sonarqube.svc.cluster.local:9000/ -Dsonar.projectName=${JOB_BASE_NAME}"
   }
   stage('Publish to Nexus') {
     echo "Publish to Nexus"
