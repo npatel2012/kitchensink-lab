@@ -12,6 +12,10 @@ node('maven') {
     // Next line for inline script, "checkout scm" for Jenkinsfile from Gogs
     // git 'http://gogs.npatel-gogs.svc.cluster.local:3000/CICDLabs/kitchensink.git'
     checkout scm
+    sh("git config --global user.email 'developer@redhat.com'")
+    sh("git config --global user.name 'Niraj Patel'")
+    sh("git tag -a 7.0.'${currentBuild.number}' -m 'Jenkins'")
+    sh('git push http://developer:developer@gogs.npatel-gogs.svc.cluster.local:3000/CICDLabs/kitchensink.git --tags')
   }
 
   // The following variables need to be defined at the top level and not inside
@@ -19,11 +23,13 @@ node('maven') {
   // Extract version and other properties from the pom.xml
   def groupId    = getGroupIdFromPom("pom.xml")
   def artifactId = getArtifactIdFromPom("pom.xml")
-  def version    = getVersionFromPom("pom.xml")
+  //def version    = getVersionFromPom("pom.xml")
+  def version    = "7.0.${currentBuild.number}"
 
   stage('Build war') {
     echo "Building version ${version}"
-
+	
+	sh "${mvnCmd} versions:set -DnewVersion=7.0.${version}"
     sh "${mvnCmd} clean package -DskipTests"
   }
   stage('Unit Tests') {
@@ -34,7 +40,7 @@ node('maven') {
     echo "Code Analysis"
 
     // Replace xyz-sonarqube with the name of your project
-    sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube.npatel-sonarqube.svc.cluster.local:9000/ -Dsonar.projectName=${JOB_BASE_NAME}"
+    // sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube.npatel-sonarqube.svc.cluster.local:9000/ -Dsonar.projectName=${JOB_BASE_NAME}"
   }
   stage('Publish to Nexus') {
     echo "Publish to Nexus"
@@ -52,6 +58,7 @@ node('maven') {
 
     // Start Binary Build in OpenShift using the file we just published
     // Replace xyz-tasks-dev with the name of your dev project
+    sh "oc whoami"
     sh "oc project npatel-kitchensink-dev"
     sh "oc start-build kitchensink --follow --from-file=./ROOT.war -n npatel-kitchensink-dev"
 
