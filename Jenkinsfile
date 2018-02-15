@@ -62,7 +62,7 @@ node('maven') {
     // Patch the DeploymentConfig so that it points to the latest TestingCandidate-${version} Image.
     // Replace xyz-tasks-dev with the name of your dev project
     sh "oc project npatel-kitchensink-dev"
-    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-kitchensink-dev\", \"name\": \"kitchensink:TestingCandidate-$version\"}}}]}}' -n npatel-kitchensink-dev"
+    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-kitchensink-dev\", \"name\": \"kitchensink:TestingKitchensink-$version\"}}}]}}' -n npatel-kitchensink-dev"
 
     openshiftDeploy depCfg: 'kitchensink', namespace: 'npatel-kitchensink-dev', verbose: 'false', waitTime: '', waitUnit: 'sec'
     openshiftVerifyDeployment depCfg: 'kitchensink', namespace: 'npatel-kitchensink-dev', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
