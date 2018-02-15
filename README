@@ -1,0 +1,10 @@
+# Instructions for setting up a fully atomated kitchensink application with CI/CD Pipeline
+
+
+// Setup separate projects which includes gogs, sonarqube, nexus and jenkins
+
+
+// Setup Environments for Development, Staging and Production
+
+
+// Create and Run Jenkins pipeline
