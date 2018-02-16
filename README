@@ -1,10 +1,21 @@
-# Instructions for setting up a fully atomated kitchensink application with CI/CD Pipeline
+# Instructions for setting up a fully automated kitchensink application with CI/CD Pipeline
+
+1. oc login <openshift_env>
+
+2. Setup separate projects which includes gogs, sonarqube, nexus, jenkins and pipeline
+./provision_base.sh deploy --project-suffix test-npatel --domain-name apps.2245.openshift.opentlc.com
+
+3. Setup Environments for Development, Staging and Production
+./provision.sh deploy --project-suffix test-npatel --domain-name apps.2245.openshift.opentlc.com
+
+4. Login into gogs and do following:
+- Create a new user... username/password as developer/developer
+- Create a new org called "CICDLabs"
+- Under that org create a new repository called "kitchensink" and clone code from "https://github.com/npatel2012/kitchensink-lab"
+
+5. Kick start the pipeline manually which you will find in the "Jenkins" project
 
 
-- Setup separate projects which includes gogs, sonarqube, nexus and jenkins
-
-
-- Setup Environments for Development, Staging and Production
-
-
-- Create and Run Jenkins pipeline
+# Nest Steps not included as part of Automation
+- Attach database to the kichensink application in Dev, Staging and Production environments
+- more CANDO tasks for the future

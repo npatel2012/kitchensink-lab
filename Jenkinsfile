@@ -6,6 +6,13 @@ node('maven') {
   // Make sure your nexus_openshift_settings.xml
   // Is pointing to your nexus instance
   def mvnCmd = "mvn -s ./nexus_openshift_settings.xml"
+  def devProjectName = "test-npatel-kitchensink-dev"
+  def stagingProjectName = "test-npatel-kitchensink-stage"
+  def productionProjectName = "test-npatel-kitchensink-prod"
+  def sonarqubeProjectName = "test-npatel-kitchensink-sonarqube"
+  def gogsProjectName = "test-npatel-kitchensink-gogs"
+  def nexusProjectName = "test-npatel-kitchensink-nexus"
+  def jenkinsProjectName = "test-npatel-kitchensink-jenkins"
 
   stage('Checkout Source') {
     // Get Source Code from SCM (Git) as configured in the Jenkins Project
@@ -15,7 +22,7 @@ node('maven') {
     sh("git config --global user.email 'developer@redhat.com'")
     sh("git config --global user.name 'Niraj Patel'")
     sh("git tag -a 7.0.'${currentBuild.number}' -m 'Jenkins'")
-    sh('git push http://developer:developer@gogs.npatel-gogs.svc.cluster.local:3000/CICDLabs/kitchensink.git --tags')
+    sh('git push http://developer:developer@gogs.${gogsProjectName}.svc.cluster.local:3000/CICDLabs/kitchensink.git --tags')
   }
 
   // The following variables need to be defined at the top level and not inside
@@ -28,7 +35,7 @@ node('maven') {
 
   stage('Build war') {
     echo "Building version ${version}"
-	
+
 	sh "${mvnCmd} versions:set -DnewVersion=7.0.${version}"
     sh "${mvnCmd} clean package -DskipTests"
   }
@@ -40,13 +47,13 @@ node('maven') {
     echo "Code Analysis"
 
     // Replace xyz-sonarqube with the name of your project
-    // sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube.npatel-sonarqube.svc.cluster.local:9000/ -Dsonar.projectName=${JOB_BASE_NAME}"
+    // sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube.${sonarqubeProjectName}.svc.cluster.local:9000/ -Dsonar.projectName=${JOB_BASE_NAME}"
   }
   stage('Publish to Nexus') {
     echo "Publish to Nexus"
 
     // Replace xyz-nexus with the name of your project
-    sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus3.npatel-nexus.svc.cluster.local:8081/repository/releases"
+    // sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus3.${nexusProjectName}.svc.cluster.local:8081/repository/releases"
   }
 
   stage('Build OpenShift Image') {
@@ -59,21 +66,21 @@ node('maven') {
     // Start Binary Build in OpenShift using the file we just published
     // Replace xyz-tasks-dev with the name of your dev project
     sh "oc whoami"
-    sh "oc project npatel-kitchensink-dev"
-    sh "oc start-build kitchensink --follow --from-file=./ROOT.war -n npatel-kitchensink-dev"
+    sh "oc project ${devProjectName}"
+    sh "oc start-build kitchensink --follow --from-file=./ROOT.war -n ${devProjectName}"
 
-    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: 'npatel-kitchensink-dev', namespace: 'npatel-kitchensink-dev', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
+    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: '${devProjectName}', namespace: '${devProjectName}', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
   }
 
   stage('Deploy to Dev') {
     // Patch the DeploymentConfig so that it points to the latest TestingCandidate-${version} Image.
     // Replace xyz-tasks-dev with the name of your dev project
-    sh "oc project npatel-kitchensink-dev"
-    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-kitchensink-dev\", \"name\": \"kitchensink:TestingKitchensink-$version\"}}}]}}' -n npatel-kitchensink-dev"
+    sh "oc project ${devProjectName}"
+    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"${devProjectName}\", \"name\": \"kitchensink:TestingKitchensink-$version\"}}}]}}' -n ${devProjectName}"
 
-    openshiftDeploy depCfg: 'kitchensink', namespace: 'npatel-kitchensink-dev', verbose: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: 'npatel-kitchensink-dev', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyService namespace: 'npatel-kitchensink-dev', svcName: 'kitchensink', verbose: 'false'
+    openshiftDeploy depCfg: 'kitchensink', namespace: '${devProjectName}', verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: '${devProjectName}', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: '${devProjectName}', svcName: 'kitchensink', verbose: 'false'
   }
 
   stage('Integration Test') {
@@ -85,16 +92,16 @@ node('maven') {
     echo "New Tag: ${newTag}"
 
     // Replace xyz-tasks-dev with the name of your dev project
-    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: 'npatel-kitchensink-dev', namespace: 'npatel-kitchensink-dev', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
+    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: '${devProjectName}', namespace: '${devProjectName}', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
   }
-  
-  stage('Deploy to Staging'){
-    sh "oc project npatel-kitchensink-stage"
-    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-kitchensink-dev\", \"name\": \"kitchensink:StagingKitchensink-$version\"}}}]}}' -n npatel-kitchensink-stage"
 
-    openshiftDeploy depCfg: 'kitchensink', namespace: 'npatel-kitchensink-stage', verbose: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: 'npatel-kitchensink-stage', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyService namespace: 'npatel-kitchensink-stage', svcName: 'kitchensink', verbose: 'false'
+  stage('Deploy to Staging'){
+    sh "oc project ${stagingProjectName}"
+    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"${devProjectName}\", \"name\": \"kitchensink:StagingKitchensink-$version\"}}}]}}' -n ${stagingProjectName}"
+
+    openshiftDeploy depCfg: 'kitchensink', namespace: '${stagingProjectName}', verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: '${stagingProjectName}', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: '${stagingProjectName}', svcName: 'kitchensink', verbose: 'false'
 
   }
 
@@ -102,7 +109,7 @@ node('maven') {
     def newTag = "ProdReady-${version}"
     echo "New Tag: ${newTag}"
 
-    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: 'npatel-kitchensink-dev', namespace: 'npatel-kitchensink-dev', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
+    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: '${devProjectName}', namespace: '${devProjectName}', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
   }
 
   // Blue/Green Deployment into Production
@@ -113,8 +120,8 @@ node('maven') {
   stage('Prep Production Deployment') {
     // Replace xyz-tasks-dev and xyz-tasks-prod with
     // your project names
-    sh "oc project npatel-kitchensink-prod"
-    sh "oc get route kitchensink -n npatel-kitchensink-prod -o jsonpath='{ .spec.to.name }' > activesvc.txt"
+    sh "oc project ${productionProjectName}"
+    sh "oc get route kitchensink -n ${productionProjectName} -o jsonpath='{ .spec.to.name }' > activesvc.txt"
     active = readFile('activesvc.txt').trim()
     if (active == "kitchensink-green") {
       dest = "kitchensink-blue"
@@ -129,19 +136,19 @@ node('maven') {
     // the latest ProdReady-${version} Image.
     // Replace xyz-tasks-dev and xyz-tasks-prod with
     // your project names.
-    sh "oc patch dc ${dest} --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"$dest\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"npatel-kitchensink-dev\", \"name\": \"kitchensink:ProdReady-$version\"}}}]}}' -n npatel-kitchensink-prod"
+    sh "oc patch dc ${dest} --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"$dest\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"${devProjectName}\", \"name\": \"kitchensink:ProdReady-$version\"}}}]}}' -n ${productionProjectName}"
 
-    openshiftDeploy depCfg: dest, namespace: 'npatel-kitchensink-prod', verbose: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyDeployment depCfg: dest, namespace: 'npatel-kitchensink-prod', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyService namespace: 'npatel-kitchensink-prod', svcName: dest, verbose: 'false'
+    openshiftDeploy depCfg: dest, namespace: '${productionProjectName}', verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: dest, namespace: '${productionProjectName}', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: '${productionProjectName}', svcName: dest, verbose: 'false'
   }
   stage('Switch over to new Version') {
     input "Switch Production?"
 
     // Replace xyz-tasks-prod with the name of your
     // production project
-    sh 'oc patch route kitchensink -n npatel-kitchensink-prod -p \'{"spec":{"to":{"name":"' + dest + '"}}}\''
-    sh 'oc get route kitchensink -n npatel-kitchensink-prod > oc_out.txt'
+    sh 'oc patch route kitchensink -n ${productionProjectName} -p \'{"spec":{"to":{"name":"' + dest + '"}}}\''
+    sh 'oc get route kitchensink -n ${productionProjectName} > oc_out.txt'
     oc_out = readFile('oc_out.txt')
     echo "Current route configuration: " + oc_out
   }
