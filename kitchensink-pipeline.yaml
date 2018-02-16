@@ -8,7 +8,7 @@ items:
     source:
       type: "Git"
       git:
-        uri: "http://gogs.npatel-gogs.svc.cluster.local:3000/CICDLabs/kitchensink"
+        uri: "http://test-npatel.apps.2245.openshift.opentlc.com/CICDLabs/kitchensink.git"
     strategy:
       type: "JenkinsPipeline"
       jenkinsPipelineStrategy:

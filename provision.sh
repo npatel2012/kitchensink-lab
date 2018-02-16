@@ -124,11 +124,11 @@ function deploy() {
   sleep 2
 
   # Setting up necessary policies
-  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:npatel-jenkins:jenkins -n $PRJ_SUFFIX-kitchensink-dev
-  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:npatel-jenkins:jenkins -n $PRJ_SUFFIX-kitchensink-stage
-  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:npatel-jenkins:jenkins -n $PRJ_SUFFIX-kitchensink-prod
+  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:$PRJ_SUFFIX-kitchensink-jenkins:jenkins -n $PRJ_SUFFIX-kitchensink-dev
+  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:$PRJ_SUFFIX-kitchensink-jenkins:jenkins -n $PRJ_SUFFIX-kitchensink-stage
+  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:$PRJ_SUFFIX-kitchensink-jenkins:jenkins -n $PRJ_SUFFIX-kitchensink-prod
   oc $ARG_OC_OPS policy add-role-to-group system:image-puller system:serviceaccounts:$PRJ_SUFFIX-kitchensink-prod -n $PRJ_SUFFIX-kitchensink-prod
-  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:npatel-jenkins:jenkins -n $PRJ_SUFFIX-kitchensink-prod
+  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:$PRJ_SUFFIX-kitchensink-jenkins:jenkins -n $PRJ_SUFFIX-kitchensink-prod
 
 
   # Setting up the DEVELOPMENT ENVIRONMENT

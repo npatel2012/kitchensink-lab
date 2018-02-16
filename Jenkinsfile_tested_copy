@@ -42,7 +42,7 @@ node('maven') {
   }
   stage('Unit Tests') {
     echo "Unit Tests"
-    sh "${mvnCmd} test"
+    // sh "${mvnCmd} test"
   }
   stage('Code Analysis') {
     echo "Code Analysis"
@@ -70,18 +70,18 @@ node('maven') {
     sh "oc project ${devProjectName}"
     sh "oc start-build kitchensink --follow --from-file=./ROOT.war -n ${devProjectName}"
 
-    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: '${devProjectName}', namespace: '${devProjectName}', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
+    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: devProjectName, namespace: devProjectName, srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
   }
 
   stage('Deploy to Dev') {
     // Patch the DeploymentConfig so that it points to the latest TestingCandidate-${version} Image.
     // Replace xyz-tasks-dev with the name of your dev project
     sh "oc project ${devProjectName}"
-    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"${devProjectName}\", \"name\": \"kitchensink:TestingKitchensink-$version\"}}}]}}' -n ${devProjectName}"
+    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"$devProjectName\", \"name\": \"kitchensink:TestingKitchensink-$version\"}}}]}}' -n ${devProjectName}"
 
-    openshiftDeploy depCfg: 'kitchensink', namespace: '${devProjectName}', verbose: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: '${devProjectName}', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyService namespace: '${devProjectName}', svcName: 'kitchensink', verbose: 'false'
+    openshiftDeploy depCfg: 'kitchensink', namespace: devProjectName, verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: devProjectName, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: devProjectName, svcName: 'kitchensink', verbose: 'false'
   }
 
   stage('Integration Test') {
@@ -93,16 +93,16 @@ node('maven') {
     echo "New Tag: ${newTag}"
 
     // Replace xyz-tasks-dev with the name of your dev project
-    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: '${devProjectName}', namespace: '${devProjectName}', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
+    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: devProjectName, namespace: devProjectName, srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
   }
 
   stage('Deploy to Staging'){
     sh "oc project ${stagingProjectName}"
-    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"${devProjectName}\", \"name\": \"kitchensink:StagingKitchensink-$version\"}}}]}}' -n ${stagingProjectName}"
+    sh "oc patch dc kitchensink --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"kitchensink\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"${devProjectName}\", \"name\": \"kitchensink:StagingKitchensink-$version\"}}}]}}' -n $stagingProjectName"
 
-    openshiftDeploy depCfg: 'kitchensink', namespace: '${stagingProjectName}', verbose: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: '${stagingProjectName}', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyService namespace: '${stagingProjectName}', svcName: 'kitchensink', verbose: 'false'
+    openshiftDeploy depCfg: 'kitchensink', namespace: stagingProjectName, verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: 'kitchensink', namespace: stagingProjectName, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: stagingProjectName, svcName: 'kitchensink', verbose: 'false'
 
   }
 
@@ -110,7 +110,7 @@ node('maven') {
     def newTag = "ProdReady-${version}"
     echo "New Tag: ${newTag}"
 
-    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: '${devProjectName}', namespace: '${devProjectName}', srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
+    openshiftTag alias: 'false', destStream: 'kitchensink', destTag: newTag, destinationNamespace: devProjectName, namespace: devProjectName, srcStream: 'kitchensink', srcTag: 'latest', verbose: 'false'
   }
 
   // Blue/Green Deployment into Production
@@ -139,9 +139,9 @@ node('maven') {
     // your project names.
     sh "oc patch dc ${dest} --patch '{\"spec\": { \"triggers\": [ { \"type\": \"ImageChange\", \"imageChangeParams\": { \"containerNames\": [ \"$dest\" ], \"from\": { \"kind\": \"ImageStreamTag\", \"namespace\": \"${devProjectName}\", \"name\": \"kitchensink:ProdReady-$version\"}}}]}}' -n ${productionProjectName}"
 
-    openshiftDeploy depCfg: dest, namespace: '${productionProjectName}', verbose: 'false', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyDeployment depCfg: dest, namespace: '${productionProjectName}', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
-    openshiftVerifyService namespace: '${productionProjectName}', svcName: dest, verbose: 'false'
+    openshiftDeploy depCfg: dest, namespace: productionProjectName, verbose: 'false', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyDeployment depCfg: dest, namespace: productionProjectName, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
+    openshiftVerifyService namespace: productionProjectName, svcName: dest, verbose: 'false'
   }
   stage('Switch over to new Version') {
     input "Switch Production?"
